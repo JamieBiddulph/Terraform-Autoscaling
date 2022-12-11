@@ -78,19 +78,19 @@ data "aws_ami" "amazon-linux" {
   }
 }
 
-# resource "aws_launch_configuration" "demo-infastructure" {
-#   name_prefix          = "demo-infastructure-asg-"
-#   image_id             = data.aws_ami.amazon-linux.id
-#   instance_type        = "t2.micro"
-#   user_data            = data.template_file.script.rendered
-#   security_groups      = [aws_security_group.demo-infastructure_instance.id]
-#   key_name             = "demo-infa"
-#   iam_instance_profile = "arn:aws:iam::153653607455:instance-profile/AWS_Code_Deploy"
+resource "aws_launch_configuration" "demo-infastructure" {
+  name_prefix          = "demo-infastructure-asg-"
+  image_id             = data.aws_ami.amazon-linux.id
+  instance_type        = "t2.micro"
+  user_data            = data.template_file.script.rendered
+  security_groups      = [aws_security_group.demo-infastructure_instance.id]
+  key_name             = "demo-infa"
+  iam_instance_profile = "arn:aws:iam::153653607455:instance-profile/AWS_Code_Deploy"
 
-#   lifecycle {
-#     create_before_destroy = true
-#   }
-# }
+  lifecycle {
+    create_before_destroy = true
+  }
+}
 
 resource "aws_autoscaling_group" "demo-infastructure" {
   name                 = "demo-infastructure"
