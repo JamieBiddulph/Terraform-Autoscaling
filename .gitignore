@@ -1,0 +1,8 @@
+terraform.tfstate
+terraform.tfstate.backup
+secrets.tfvars
+WordPress
+CodeDeploy
+.terraform/
+plan.out
+CodeDeploy.sh
