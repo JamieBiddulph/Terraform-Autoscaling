@@ -1,7 +1,6 @@
 // TODO
 // - Setup HTTPS and SSL Certificates
 // - Setup custom domain
-// - Enable EFS backups
 // - Configure Secure rules for the Security groups
 // - Configure / Enable CloudFlare for fronend caching
 
@@ -43,6 +42,14 @@ module "vpc" {
 resource "aws_efs_file_system" "demo-infastructure" {
   creation_token = "demo-infastructure"
   encrypted      = true
+}
+
+resource "aws_efs_backup_policy" "policy" {
+  file_system_id = aws_efs_file_system.demo-infastructure.id
+
+  backup_policy {
+    status = "ENABLED"
+  }
 }
 
 resource "aws_efs_access_point" "demo-infastructure" {
@@ -220,16 +227,16 @@ resource "aws_db_subnet_group" "demo-infastructure" {
 }
 
 resource "aws_db_instance" "demo-infastructure" {
-  allocated_storage    = 5
-  engine               = "mysql"
-  engine_version       = "5.7"
-  instance_class       = "db.t3.micro"
-  username             = var.dbuser
-  password             = var.dbpass
-  db_name              = var.dbuser
-  parameter_group_name = "default.mysql5.7"
-  skip_final_snapshot  = true
-  db_subnet_group_name = aws_db_subnet_group.demo-infastructure.name
+  allocated_storage      = 5
+  engine                 = "mysql"
+  engine_version         = "5.7"
+  instance_class         = "db.t3.micro"
+  username               = var.dbuser
+  password               = var.dbpass
+  db_name                = var.dbuser
+  parameter_group_name   = "default.mysql5.7"
+  skip_final_snapshot    = true
+  db_subnet_group_name   = aws_db_subnet_group.demo-infastructure.name
   vpc_security_group_ids = [aws_security_group.demo-infastructure_instance.id]
 
 }
