@@ -1,9 +1,9 @@
 output "lb_endpoint" {
-  value = "http://${aws_lb.demo-infastructure.dns_name}"
+  value = "https://${aws_lb.demo-infastructure.dns_name}"
 }
 
 output "application_endpoint" {
-  value = "http://${aws_lb.demo-infastructure.dns_name}/index.php"
+  value = "https://${aws_lb.demo-infastructure.dns_name}/index.php"
 }
 
 output "asg_name" {

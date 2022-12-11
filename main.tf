@@ -1,6 +1,4 @@
 // TODO
-// - Setup HTTPS and SSL Certificates
-// - Setup custom domain
 // - Configure Secure rules for the Security groups
 // - Configure / Enable CloudFlare for fronend caching
 
@@ -129,8 +127,10 @@ resource "aws_lb" "demo-infastructure" {
 
 resource "aws_lb_listener" "demo-infastructure" {
   load_balancer_arn = aws_lb.demo-infastructure.arn
-  port              = "80"
-  protocol          = "HTTP"
+  port              = "443"
+  protocol          = "HTTPS"
+  certificate_arn   = aws_acm_certificate.blog-jbidd-name.arn
+  ssl_policy        = "ELBSecurityPolicy-FS-1-2-Res-2020-10"
 
   default_action {
     type             = "forward"
@@ -138,10 +138,27 @@ resource "aws_lb_listener" "demo-infastructure" {
   }
 }
 
+resource "aws_lb_listener" "demo-infastructure-redirect" {
+  load_balancer_arn = aws_lb.demo-infastructure.arn
+  port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "redirect"
+
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+}
+
 resource "aws_lb_target_group" "demo-infastructure" {
   name     = "demo-infastructure"
-  port     = 80
-  protocol = "HTTP"
+  port     = 443
+  protocol = "HTTPS"
+  protocol_version = "HTTP2"
   vpc_id   = module.vpc.vpc_id
 }
 
@@ -154,8 +171,8 @@ resource "aws_autoscaling_attachment" "demo-infastructure" {
 resource "aws_security_group" "demo-infastructure_instance" {
   name = "demo-infastructure-instance"
   ingress {
-    from_port       = 80
-    to_port         = 80
+    from_port       = 443
+    to_port         = 443
     protocol        = "tcp"
     security_groups = [aws_security_group.demo-infastructure_lb.id]
   }
@@ -200,9 +217,17 @@ resource "aws_security_group" "demo-infastructure_instance" {
 
 resource "aws_security_group" "demo-infastructure_lb" {
   name = "demo-infastructure-lb"
+
   ingress {
     from_port   = 80
     to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -219,6 +244,14 @@ resource "aws_security_group" "demo-infastructure_lb" {
 
 resource "aws_secretsmanager_secret" "demo-infastructure-wp-secrets" {
   name = "demo-infastructure-wp-secrets"
+}
+
+resource "aws_secretsmanager_secret" "demo-infastructure-ssl-pem" {
+  name = "demo-infastructure-ssl-pem"
+}
+
+resource "aws_secretsmanager_secret" "demo-infastructure-ssl-key" {
+  name = "demo-infastructure-ssl-key"
 }
 
 resource "aws_db_subnet_group" "demo-infastructure" {
@@ -239,4 +272,47 @@ resource "aws_db_instance" "demo-infastructure" {
   db_subnet_group_name   = aws_db_subnet_group.demo-infastructure.name
   vpc_security_group_ids = [aws_security_group.demo-infastructure_instance.id]
 
+}
+
+resource "aws_route53_zone" "jbidd-name" {
+  name = "jbidd.name"
+}
+
+resource "aws_route53_record" "blog" {
+  zone_id = aws_route53_zone.jbidd-name.zone_id
+  name    = "blog.jbidd.name"
+  type    = "CNAME"
+  ttl     = 300
+  records = [aws_lb.demo-infastructure.dns_name]
+}
+
+resource "aws_acm_certificate" "blog-jbidd-name" {
+  domain_name       = "blog.jbidd.name"
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_route53_record" "blog-jbidd-name" {
+  for_each = {
+    for dvo in aws_acm_certificate.blog-jbidd-name.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
+  }
+
+  allow_overwrite = true
+  name            = each.value.name
+  records         = [each.value.record]
+  ttl             = 60
+  type            = each.value.type
+  zone_id         = aws_route53_zone.jbidd-name.zone_id
+}
+
+resource "aws_acm_certificate_validation" "blog-jbidd-name" {
+  certificate_arn         = aws_acm_certificate.blog-jbidd-name.arn
+  validation_record_fqdns = [for record in aws_route53_record.blog-jbidd-name : record.fqdn]
 }

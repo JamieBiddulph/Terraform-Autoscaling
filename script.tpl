@@ -38,19 +38,14 @@ php8.1-bcmath \
 php8.1-mbstring \
 php8.1-pdo \
 php8.1-xml \
-php8.1-mysql
-
-# Setup nginx and PHP-FPM configs
-git clone https://github.com/JamieBiddulph/autoscale-templates.git --branch main
-sudo cp autoscale-templates/nginx.conf /etc/nginx/nginx.conf
-sudo cp autoscale-templates/www.conf /etc/php/8.1/fpm/pool.d/www.conf
-
-# Restart services post conf update
-sudo systemctl restart nginx
-sudo systemctl restart php8.1-fpm
+php8.1-mysql \
+php8.1-zip \
+php8.1-gd \
+php8.1-imagick \
+php8.1-intl
 
 #### Setup code base ####
-sudo git clone https://github.com/JamieBiddulph/WordPress-Autoscale-Demo.git --branch v1.0.0 /var/www/html/code
+sudo git clone https://github.com/JamieBiddulph/WordPress-Autoscale-Demo.git --branch v1.1.0 /var/www/html/code
 sudo chown -R www-data:www-data /var/www/html/code
 sudo find /var/www/html/code -type d -exec chmod 2775 {} +
 sudo find /var/www/html/code -type f -exec chmod 0664 {} +
@@ -64,6 +59,29 @@ aws secretsmanager get-secret-value --secret-id $AWS_SECRET_ID --region $AWS_REG
   jq -r '.SecretString' > $ENVFILE
 sudo chown www-data:www-data $ENVFILE
 sudo chmod 400 $ENVFILE
+
+# Setup nginx and PHP-FPM configs
+git clone https://github.com/JamieBiddulph/autoscale-templates.git --branch main
+sudo cp autoscale-templates/nginx.conf /etc/nginx/nginx.conf
+sudo cp autoscale-templates/www.conf /etc/php/8.1/fpm/pool.d/www.conf
+curl https://ssl-config.mozilla.org/ffdhe2048.txt  > /etc/nginx/dhparam
+
+# Setup Self-Signed Certificate files
+AWS_SECRET_SSL_PEM_ID="arn:aws:secretsmanager:eu-west-2:153653607455:secret:demo-infastructure-ssl-pem-GCBfN7"
+AWS_SECRET_SSL_KEY_ID="arn:aws:secretsmanager:eu-west-2:153653607455:secret:demo-infastructure-ssl-key-jEIOG7"
+AWS_REGION="eu-west-2"
+SSL_PEM_FILE="/etc/nginx/ssl.pem"
+SSL_KEY_FILE="/etc/nginx/ssl.key"
+aws secretsmanager get-secret-value --secret-id $AWS_SECRET_SSL_PEM_ID --region $AWS_REGION | \
+  jq -r '.SecretString' > $SSL_PEM_FILE
+sudo chmod 400 $SSL_PEM_FILE
+aws secretsmanager get-secret-value --secret-id $AWS_SECRET_SSL_KEY_ID --region $AWS_REGION | \
+  jq -r '.SecretString' > $SSL_KEY_FILE
+sudo chmod 400 $SSL_KEY_FILE
+
+# Restart services post conf update
+sudo systemctl restart nginx
+sudo systemctl restart php8.1-fpm
 
 #### Setup uploads symlink ####
 sudo mkdir /mnt/efs
