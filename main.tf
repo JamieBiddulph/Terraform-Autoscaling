@@ -1,6 +1,7 @@
 // TODO
 // - Setup HTTPS and SSL Certificates
 // - Setup custom domain
+// - Enable EFS backups
 // - Configure Secure rules for the Security groups
 // - Configure / Enable CloudFlare for fronend caching
 
