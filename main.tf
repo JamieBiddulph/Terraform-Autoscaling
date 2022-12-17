@@ -316,3 +316,96 @@ resource "aws_acm_certificate_validation" "blog-jbidd-name" {
   certificate_arn         = aws_acm_certificate.blog-jbidd-name.arn
   validation_record_fqdns = [for record in aws_route53_record.blog-jbidd-name : record.fqdn]
 }
+
+resource "aws_s3_bucket" "demo-infastructure-code" {
+  bucket = "demo-infastructure-code-blog"
+}
+
+resource "aws_s3_bucket_acl" "demo-infastructure-code" {
+  bucket = aws_s3_bucket.demo-infastructure-code.id
+  acl    = "private"
+}
+
+resource "aws_iam_policy" "demo-infastructure-code" {
+  name        = "s3-demo-infastructure-code"
+  
+
+  # Terraform's "jsonencode" function converts a
+  # Terraform expression result to valid JSON syntax.
+  policy = <<EOT
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": "autoscaling:StartInstanceRefresh",
+            "Resource": "arn:aws:autoscaling:eu-west-2:153653607455:autoScalingGroup:2c4fc013-c03b-4168-8e77-b7211230e391:autoScalingGroupName/demo-infastructure"
+        },
+        {
+            "Sid": "VisualEditor1",
+            "Effect": "Allow",
+            "Action": [
+                "autoscaling:DescribeAutoScalingNotificationTypes",
+                "s3:ListAccessPointsForObjectLambda",
+                "autoscaling:DescribeAutoScalingInstances",
+                "s3:GetAccessPoint",
+                "autoscaling:DescribeScalingProcessTypes",
+                "autoscaling:DescribeTerminationPolicyTypes",
+                "autoscaling:DescribePolicies",
+                "autoscaling:DescribeLaunchConfigurations",
+                "s3:PutStorageLensConfiguration",
+                "autoscaling:DescribeAdjustmentTypes",
+                "autoscaling:DescribeScalingActivities",
+                "autoscaling:DescribeAccountLimits",
+                "autoscaling:DescribeAutoScalingGroups",
+                "autoscaling:DescribeWarmPool",
+                "autoscaling:DescribeScheduledActions",
+                "autoscaling:DescribeLoadBalancerTargetGroups",
+                "autoscaling:DescribeInstanceRefreshes",
+                "autoscaling:DescribeNotificationConfigurations",
+                "autoscaling:GetPredictiveScalingForecast",
+                "autoscaling:DescribeLifecycleHookTypes",
+                "s3:PutAccountPublicAccessBlock",
+                "s3:ListAccessPoints",
+                "autoscaling:DescribeTags",
+                "s3:ListJobs",
+                "autoscaling:DescribeMetricCollectionTypes",
+                "s3:ListMultiRegionAccessPoints",
+                "autoscaling:DescribeLoadBalancers",
+                "autoscaling:DescribeLifecycleHooks",
+                "s3:ListStorageLensConfigurations",
+                "s3:GetAccountPublicAccessBlock",
+                "s3:ListAllMyBuckets",
+                "s3:PutAccessPointPublicAccessBlock",
+                "s3:CreateJob"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "VisualEditor2",
+            "Effect": "Allow",
+            "Action": "s3:*",
+            "Resource": [
+                "arn:aws:s3:::demo-infastructure-code-blog/*",
+                "arn:aws:s3:::demo-infastructure-code-blog"
+            ]
+        }
+    ]
+}
+EOT
+}
+
+resource "aws_iam_user" "demo-infastructure-code" {
+  name = "demo-infastructure-code"
+
+}
+
+resource "aws_iam_access_key" "demo-infastructure-code" {
+  user = aws_iam_user.demo-infastructure-code.name
+}
+
+resource "aws_iam_user_policy_attachment" "demo-infastructure-code" {
+  user       = aws_iam_user.demo-infastructure-code.name
+  policy_arn = aws_iam_policy.demo-infastructure-code.arn
+}

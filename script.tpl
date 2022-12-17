@@ -20,10 +20,10 @@ sudo ./build-deb.sh
 sudo apt-get -y install ./build/amazon-efs-utils*deb
 
 # Setup the code-deploy agent. Not currently in use so could be removed.
-wget https://aws-codedeploy-eu-west-2.s3.eu-west-2.amazonaws.com/latest/install
-sudo chmod u+x ./install
-sudo ./install auto > /tmp/logfile
-sudo service codedeploy-agent start
+# wget https://aws-codedeploy-eu-west-2.s3.eu-west-2.amazonaws.com/latest/install
+# sudo chmod u+x ./install
+# sudo ./install auto > /tmp/logfile
+# sudo service codedeploy-agent start
 
 # Setup prefered nginx and php versions
 sudo add-apt-repository ppa:ondrej/php -y
@@ -44,14 +44,16 @@ php8.1-gd \
 php8.1-imagick \
 php8.1-intl
 
+
 #### Setup code base ####
-sudo git clone https://github.com/JamieBiddulph/WordPress-Autoscale-Demo.git --branch v1.1.0 /var/www/html/code
+pip3 install awscli --upgrade
+sudo aws s3 cp s3://demo-infastructure-code-blog/release-latest-zip /tmp/release-latest-zip
+sudo unzip -q /tmp/release-latest-zip -d /var/www/html/code
 sudo chown -R www-data:www-data /var/www/html/code
 sudo find /var/www/html/code -type d -exec chmod 2775 {} +
 sudo find /var/www/html/code -type f -exec chmod 0664 {} +
 
 # Setup wp-config.php using AWS Secrets Manager
-pip3 install awscli --upgrade
 AWS_SECRET_ID="arn:aws:secretsmanager:eu-west-2:153653607455:secret:demo-infastructure-wp-secrets-y3lnuc"
 AWS_REGION="eu-west-2"
 ENVFILE="/var/www/html/code/wp-config.php"
@@ -80,6 +82,7 @@ aws secretsmanager get-secret-value --secret-id $AWS_SECRET_SSL_KEY_ID --region 
 sudo chmod 400 $SSL_KEY_FILE
 
 # Restart services post conf update
+sudo apt upgrade -y
 sudo systemctl restart nginx
 sudo systemctl restart php8.1-fpm
 
